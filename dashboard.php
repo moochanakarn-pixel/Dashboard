@@ -88,9 +88,7 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     <meta property="og:type" content="website">
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icon.jpg">
-    <link rel="apple-touch-icon" href="icon.jpg">
-    <meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#0b1220">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dashboard">
