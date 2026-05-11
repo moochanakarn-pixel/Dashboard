@@ -1,0 +1,16 @@
+# Environment / credentials — ห้าม commit เด็ดขาด
+.env
+
+# Cache files
+cache/*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# PHP error logs
+*.log

@@ -1,0 +1,134 @@
+# Sales Dashboard — CLAUDE.md
+
+> เอกสารอธิบายโครงสร้างและการทำงานของโปรเจกต์นี้  
+> ไว้ให้ Claude (หรือนักพัฒนา) อ่านก่อนแก้ไขโค้ด
+
+---
+
+## เวอร์ชัน
+
+| รายการ       | ค่า                    |
+|-------------|------------------------|
+| Version     | 1.1.0                  |
+| PHP         | >= 7.4 (รองรับ 8.x)   |
+| MySQL       | >= 5.1                 |
+| Last update | 2026-05-11             |
+
+### Changelog
+- **1.1.0** — ย้าย credentials ออกจาก source code ไปไว้ใน `.env`, เพิ่ม `DASHBOARD_CACHE_TTL`, ลบ `phpinfo.php`, ซ่อน error message ของ DB connection
+- **1.0.0** — เวอร์ชันเริ่มต้น: dashboard หน้าเดียว + API endpoint + caching
+
+---
+
+## โครงสร้างไฟล์
+
+```
+Dashboard/
+├── dashboard.php          # หน้า HTML หลัก (UI + JavaScript)
+├── api_dashboard.php      # API endpoint คืน JSON ข้อมูลยอดขาย
+├── dashboard_config.php   # โหลด .env + utility functions
+├── .env                   # credentials และค่า config (ห้าม commit)
+├── .env.example           # template สำหรับ .env (commit ได้)
+├── .gitignore
+├── web.config             # IIS default document → dashboard.php
+├── cache/                 # JSON cache ของแต่ละวัน
+│   └── dashboard_YYYY-MM-DD.json
+└── CLAUDE.md              # ไฟล์นี้
+```
+
+---
+
+## การทำงาน
+
+### `dashboard.php`
+- หน้า HTML + CSS + JavaScript ทั้งหมดอยู่ในไฟล์เดียว
+- อ่านค่า `$date` จาก `$_GET['date']` (default = วันนี้)
+- ส่ง `$DASHBOARD_REFRESH_MS` จาก PHP ลงไปใน JavaScript
+- JavaScript โหลดข้อมูลจาก `api_dashboard.php` ด้วย `fetch()`
+- Auto-refresh ทุก N วินาที เฉพาะเมื่อดูวันนี้และ tab ยังเปิดอยู่
+- รองรับ dark/light theme (บันทึกใน `localStorage`)
+
+### `api_dashboard.php`
+- รับ `?date=YYYY-MM-DD` และ `?force=1` (บังคับข้าม cache)
+- ตรวจ cache ก่อน — ถ้ายังไม่หมดอายุให้คืน JSON จาก cache ทันที
+- ถ้า cache หมดหรือ force refresh จะ query DB ทั้งหมด 7 queries:
+
+| Section          | ตาราง                                              |
+|------------------|----------------------------------------------------|
+| summary          | ordertransaction                                   |
+| sale_modes       | ordertransaction + salemode                        |
+| hourly           | ordertransaction                                   |
+| payment_types    | paydetail + ordertransaction + paytype             |
+| top_products     | ordertransaction + orderdetail + orderdiscountdetail + products |
+| discount_summary | orderpromotiondiscountdetail + ordertransaction + orderdetail + promotionpricegroup |
+| recent_bills     | ordertransaction + salemode + ordertransactionstatus + tablenofororder + tableno |
+
+- นิยาม "บิลที่ชำระแล้ว" (`$paidWhere`):  
+  `Deleted = 0` AND `SaleDate = ?` AND (TransactionStatusID = 2 หรือ Description = 'CloseBill' หรือ PaidTime IS NOT NULL)
+- Encode JSON ด้วย `JSON_UNESCAPED_UNICODE` พร้อม fallback ถ้า encode ล้มเหลว
+- บันทึก cache ด้วย `LOCK_EX` เพื่อป้องกัน race condition
+
+### `dashboard_config.php`
+- อ่านไฟล์ `.env` ด้วย parser เรียบง่าย (ไม่ต้องใช้ Composer)
+- กำหนดตัวแปร global: `$DB_HOST`, `$DB_PORT`, `$DB_NAME`, `$DB_USER`, `$DB_PASS`, `$DB_FALLBACK_IP`, `$DB_CHARSET`, `$DASHBOARD_REFRESH_MS`, `$DASHBOARD_CACHE_TTL`
+- `db_connect()` — ลอง connect ด้วย resolved IP ก่อน ถ้าล้มเหลวใช้ fallback IP; timeout 3 วินาที
+- Utility: `h()`, `money_fmt()`, `bill_status_thai()`, `payment_type_display()`
+
+---
+
+## การติดตั้ง
+
+```bash
+# 1. clone หรือ copy ไฟล์ขึ้น server
+# 2. สร้าง .env จาก template
+cp .env.example .env
+
+# 3. แก้ไขค่าใน .env ให้ตรงกับ server
+# DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, DB_FALLBACK_IP
+
+# 4. ตรวจสอบว่า web server มีสิทธิ์ write โฟลเดอร์ cache/
+chmod 775 cache/
+```
+
+---
+
+## ตัวแปรใน `.env`
+
+| ตัวแปร                | ค่า default | คำอธิบาย                                      |
+|----------------------|-------------|-----------------------------------------------|
+| DB_HOST              | 127.0.0.1   | hostname หรือ IP ของ MySQL                    |
+| DB_PORT              | 3307        | port MySQL                                    |
+| DB_NAME              | —           | ชื่อ database                                  |
+| DB_USER              | —           | username (แนะนำให้ใช้ user ที่มีแค่ SELECT)    |
+| DB_PASS              | —           | password                                      |
+| DB_FALLBACK_IP       | —           | IP สำรอง ถ้า resolve hostname ล้มเหลว          |
+| DB_CHARSET           | utf8        | charset ของ connection                        |
+| DASHBOARD_REFRESH_MS | 60000       | interval auto-refresh (milliseconds)          |
+| DASHBOARD_CACHE_TTL  | 60          | อายุ cache (วินาที), 0 = ปิด cache            |
+
+---
+
+## MySQL User สำหรับ Dashboard (แนะนำ)
+
+ควรสร้าง user ที่มีสิทธิ์แค่ SELECT แทนการใช้ `root`:
+
+```sql
+-- MySQL 5.1+ compatible
+CREATE USER 'dashboard_reader'@'%' IDENTIFIED BY 'StrongPasswordHere';
+GRANT SELECT ON yoppa.* TO 'dashboard_reader'@'%';
+FLUSH PRIVILEGES;
+
+-- ถ้าต้องการจำกัด host เฉพาะ server นี้
+-- CREATE USER 'dashboard_reader'@'127.0.0.1' IDENTIFIED BY 'StrongPasswordHere';
+-- GRANT SELECT ON yoppa.* TO 'dashboard_reader'@'127.0.0.1';
+-- FLUSH PRIVILEGES;
+```
+
+---
+
+## ข้อควรระวัง
+
+- **ห้าม commit `.env`** — มี credentials จริง
+- **`cache/` ควรอยู่นอก web root** ถ้า server อนุญาต เพื่อกันดาวน์โหลด JSON ตรง
+- ไม่มีระบบ authentication — ควรป้องกันด้วย HTTP Basic Auth หรือ IP whitelist ที่ระดับ web server
+- `DB_FALLBACK_IP` ควรเป็นค่าว่างถ้าไม่ใช้ เพื่อไม่ให้เปิดเผย IP ใน config
