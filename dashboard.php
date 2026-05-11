@@ -1,5 +1,76 @@
 <?php
 require __DIR__ . '/dashboard_config.php';
+
+$cacheDir = __DIR__ . '/cache';
+$slotFile = $cacheDir . '/active_slots.json';
+$maxSlots = 5;
+$slotTtl  = 90;
+
+if (!is_dir($cacheDir)) {
+    @mkdir($cacheDir, 0777, true);
+}
+
+$cookiePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/';
+$token = $_COOKIE['_ds'] ?? '';
+
+$lock = fopen($slotFile . '.lock', 'c');
+flock($lock, LOCK_EX);
+
+$slots = [];
+if (is_file($slotFile)) {
+    $slots = json_decode(@file_get_contents($slotFile), true) ?? [];
+}
+$now = time();
+foreach ($slots as $t => $ts) {
+    if ($now - $ts >= $slotTtl) unset($slots[$t]);
+}
+
+$granted = false;
+if ($token && isset($slots[$token])) {
+    $slots[$token] = $now;
+    $granted = true;
+} elseif (count($slots) < $maxSlots) {
+    $token = bin2hex(random_bytes(8));
+    $slots[$token] = $now;
+    $granted = true;
+    setcookie('_ds', $token, 0, $cookiePath);
+}
+
+@file_put_contents($slotFile, json_encode($slots), LOCK_EX);
+flock($lock, LOCK_UN);
+fclose($lock);
+
+if (!$granted) {
+    $activeCount = count($slots);
+    http_response_code(503);
+?><!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบมีผู้ใช้งานเต็ม</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Tahoma,Arial,sans-serif;background:#0b1220;color:#ecf2ff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{text-align:center;padding:48px 40px;background:#121a2b;border:1px solid rgba(255,255,255,.08);border-radius:22px;max-width:420px;width:90%}
+h1{font-size:26px;margin:0 0 8px}
+.count{font-size:52px;font-weight:800;color:#6ea8fe;margin:16px 0}
+p{color:#9fb0d0;margin:0 0 28px;line-height:1.6}
+button{background:linear-gradient(135deg,#6ea8fe,#8d8cff);color:#fff;border:none;border-radius:16px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="box">
+    <h1>ระบบมีผู้ใช้งานเต็ม</h1>
+    <div class="count"><?php echo (int)$activeCount; ?> / <?php echo $maxSlots; ?></div>
+    <p>มีผู้ใช้งานครบจำนวนแล้ว<br>กรุณารอสักครู่แล้วลองใหม่อีกครั้ง</p>
+    <button onclick="location.reload()">ลองใหม่</button>
+</div>
+</body>
+</html><?php
+    exit;
+}
+
 $date = $_GET['date'] ?? date('Y-m-d');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     $date = date('Y-m-d');
@@ -142,6 +213,7 @@ const footerNote = document.getElementById('footerNote');
 let isLoading = false;
 let autoRefreshTimer = null;
 let activeController = null;
+const slotToken = <?php echo json_encode($token); ?>;
 
 function money(n){return new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0));}
 function intfmt(n){return new Intl.NumberFormat('th-TH',{maximumFractionDigits:0}).format(Number(n||0));}
@@ -224,6 +296,10 @@ dateInput.addEventListener('change',()=>{ loadDashboard(true); startAutoRefresh(
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ stopAutoRefresh(); } else { updateFooterNote(); loadDashboard(); startAutoRefresh(); } });
 loadDashboard();
 startAutoRefresh();
+function sendHeartbeat(){ if(!slotToken) return; fetch('slot.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'action=heartbeat&token='+encodeURIComponent(slotToken),keepalive:true}).catch(()=>{}); }
+function releaseSlot(){ if(!slotToken) return; navigator.sendBeacon('slot.php', new URLSearchParams({action:'release',token:slotToken})); }
+setInterval(sendHeartbeat, 30000);
+window.addEventListener('beforeunload', releaseSlot);
 </script>
 </body>
 </html>
