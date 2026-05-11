@@ -17,13 +17,16 @@ foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line)
     }
 }
 
-$DB_HOST            = $_ENV['DB_HOST']             ?? '127.0.0.1';
-$DB_PORT            = (int)($_ENV['DB_PORT']        ?? 3306);
-$DB_NAME            = $_ENV['DB_NAME']             ?? '';
-$DB_USER            = $_ENV['DB_USER']             ?? '';
-$DB_PASS            = $_ENV['DB_PASS']             ?? '';
-$DB_FALLBACK_IP     = $_ENV['DB_FALLBACK_IP']      ?? '';
-$DB_CHARSET         = $_ENV['DB_CHARSET']          ?? 'utf8';
+$DB_HOST            = $_ENV['DB_HOST']        ?? '127.0.0.1';
+$DB_PORT            = (int)($_ENV['DB_PORT']   ?? 3306);
+$DB_NAME            = $_ENV['DB_NAME']        ?? '';
+$DB_FALLBACK_IP     = $_ENV['DB_FALLBACK_IP'] ?? '';
+
+// Fixed dashboard credentials — same for all shops
+$DB_USER    = 'dashboard';
+$DB_PASS    = 'dashboard@2026';
+$DB_CHARSET = 'utf8';
+
 $DASHBOARD_REFRESH_MS = (int)($_ENV['DASHBOARD_REFRESH_MS'] ?? 60000);
 $DASHBOARD_CACHE_TTL  = (int)($_ENV['DASHBOARD_CACHE_TTL']  ?? 60);
 
