@@ -131,6 +131,7 @@ try {
     $paidWhere = "
         ot.Deleted = 0
         AND ot.SaleDate = ?
+        AND ot.ReceiptPayPrice > 0
         AND ot.TransactionStatusID NOT IN (5, 8, 12, 13, 16)
         AND (
             ot.TransactionStatusID = 2
