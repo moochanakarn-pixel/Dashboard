@@ -41,6 +41,11 @@ $data = [
     'payment_types' => [],
     'top_products' => [],
     'discount_summary' => [],
+    'void_summary' => [
+        'bill_count' => 0,
+        'total_voided' => 0.0,
+    ],
+    'void_bills' => [],
     'error' => null,
 ];
 
@@ -126,6 +131,7 @@ try {
     $paidWhere = "
         ot.Deleted = 0
         AND ot.SaleDate = ?
+        AND ot.TransactionStatusID NOT IN (5, 8, 12, 13, 16)
         AND (
             ot.TransactionStatusID = 2
             OR EXISTS (
@@ -136,6 +142,12 @@ try {
             )
             OR ot.PaidTime IS NOT NULL
         )
+    ";
+
+    $voidWhere = "
+        ot.Deleted = 0
+        AND ot.SaleDate = ?
+        AND ot.TransactionStatusID IN (5, 8, 12, 13, 16)
     ";
 
     $sqlSummary = "
@@ -370,6 +382,59 @@ try {
                     'close_time' => $row['CloseTime'] ?? '',
                 ];
             }
+        }
+        $stmt->close();
+    }
+
+    $sqlVoid = "
+        SELECT
+            ot.TransactionID,
+            ot.ComputerID,
+            ot.ReceiptID,
+            ot.ReceiptPayPrice,
+            ot.VoidTime,
+            ot.VoidReason,
+            ot.PaidTime,
+            ot.CloseTime,
+            COALESCE(NULLIF(sm.SaleModeName, ''), CONCAT('Mode ', ot.SaleMode)) AS sale_mode_name,
+            ots.Description AS status_description,
+            COALESCE(NULLIF(tn.TableName, ''), CONCAT('โต๊ะ ', tfo.TableNo), CONCAT('โต๊ะ ', ot.TableID), '-') AS table_name
+        FROM ordertransaction ot
+        LEFT JOIN salemode sm ON sm.SaleModeID = ot.SaleMode
+        LEFT JOIN ordertransactionstatus ots ON ots.TransactionStatusID = ot.TransactionStatusID
+        LEFT JOIN tablenofororder tfo
+            ON tfo.TransactionID = ot.TransactionID
+           AND tfo.ComputerID = ot.ComputerID
+           AND tfo.HistoryTrack = 0
+        LEFT JOIN tableno tn ON tn.TableID = tfo.TableNo
+        WHERE $voidWhere
+        ORDER BY COALESCE(ot.VoidTime, ot.CloseTime, ot.UpdateDate, ot.OpenTime) DESC
+        LIMIT 20
+    ";
+    if ($stmt = safe_prepare($conn, $data, $sqlVoid)) {
+        $stmt->bind_param('s', $date);
+        if ($res = safe_execute($stmt, $data)) {
+            $voidTotal = 0.0;
+            $voidCount = 0;
+            while ($row = $res->fetch_assoc()) {
+                $voidTotal += (float)($row['ReceiptPayPrice'] ?? 0);
+                $voidCount++;
+                $data['void_bills'][] = [
+                    'transaction_id'    => (int)($row['TransactionID'] ?? 0),
+                    'computer_id'       => (int)($row['ComputerID'] ?? 0),
+                    'receipt_id'        => (int)($row['ReceiptID'] ?? 0),
+                    'receipt_pay_price' => (float)($row['ReceiptPayPrice'] ?? 0),
+                    'void_time'         => $row['VoidTime'] ?? '',
+                    'void_reason'       => $row['VoidReason'] ?? '',
+                    'paid_time'         => $row['PaidTime'] ?? '',
+                    'close_time'        => $row['CloseTime'] ?? '',
+                    'sale_mode_name'    => $row['sale_mode_name'] ?? '-',
+                    'status_description'=> $row['status_description'] ?? '-',
+                    'table_name'        => $row['table_name'] ?? '-',
+                ];
+            }
+            $data['void_summary']['bill_count']   = $voidCount;
+            $data['void_summary']['total_voided'] = $voidTotal;
         }
         $stmt->close();
     }

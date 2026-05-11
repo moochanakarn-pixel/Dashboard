@@ -124,6 +124,8 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         .bar-label,.bar-value{font-size:14px}.bar-value{color:var(--muted);white-space:nowrap}.table-wrap{overflow:auto} table{width:100%;border-collapse:collapse} th,td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap} th{color:var(--muted);font-size:13px;font-weight:600} td{font-size:14px} tr:hover td{background:var(--row)}
         .badge{display:inline-flex;padding:7px 12px;border-radius:999px;background:var(--badgebg);color:var(--badgetext);border:1px solid var(--badgeline);font-size:12px;font-weight:700}
         .empty{padding:18px;border-radius:18px;background:var(--pill);color:var(--muted);text-align:center}.error-box{display:none;margin-top:16px;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,99,99,.12);color:var(--danger);white-space:pre-wrap}.rank{font-weight:800;color:var(--accent)}.footer-note{margin-top:14px;color:var(--muted);font-size:12px;text-align:right}.text-right{text-align:right}
+        .void-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.void-stat-item{padding:18px 20px;background:rgba(255,138,138,.05);border:1px solid rgba(255,138,138,.12);border-radius:16px}.void-value{font-size:30px;font-weight:800;color:var(--danger);margin-top:8px}.badge-void{background:rgba(255,138,138,.12);color:var(--danger);border-color:rgba(255,138,138,.25)}
+        @media(max-width:720px){.void-stats{grid-template-columns:1fr}}
         @media (max-width:1280px){.grid-cards{grid-template-columns:repeat(3,1fr)}} @media (max-width:1200px){.grid-main,.grid-bottom{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.hero-controls{justify-content:flex-start}} @media (max-width:720px){.container{padding:14px}.grid-cards{grid-template-columns:1fr}.hero h1{font-size:28px}.value{font-size:30px}.bar-row{grid-template-columns:1fr}}
     </style>
 </head>
@@ -207,6 +209,26 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         </div>
     </div>
 
+    <div class="card section" style="margin-top:16px;">
+        <h2>สรุปบิลที่ถูกยกเลิก / Void</h2>
+        <div class="void-stats">
+            <div class="void-stat-item">
+                <div class="label">จำนวนบิลยกเลิก</div>
+                <div class="void-value" id="voidBillCount">-</div>
+            </div>
+            <div class="void-stat-item">
+                <div class="label">ยอดรวมที่ถูกยกเลิก</div>
+                <div class="void-value" id="voidTotal">-</div>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>เวลา Void</th><th>เลขบิล</th><th>โต๊ะ</th><th>ประเภท</th><th>สถานะ</th><th>เหตุผล</th><th>ยอด</th></tr></thead>
+                <tbody id="voidBillsBody"><tr><td colspan="7" class="empty">กำลังโหลดข้อมูล...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="footer-note" id="footerNote">Auto refresh กำลังเตรียมทำงาน...</div>
 </div>
 <script>
@@ -234,6 +256,8 @@ function renderRecentBills(rows){const body=document.getElementById('recentBills
 function renderTopProducts(rows){const body=document.getElementById('topProductsBody'); if(!rows||!rows.length){body.innerHTML='<tr><td colspan="4" class="empty">ยังไม่มีข้อมูลสินค้าขายดี</td></tr>';return;} body.innerHTML=rows.map((r,idx)=>`<tr><td class="rank">#${idx+1}</td><td>${escapeHtml(r.product_name||'-')}</td><td>${qtyfmt(r.qty_sold)}</td><td>${money(r.total_sales)} ฿</td></tr>`).join('');}
 function renderPaymentTable(rows){const body=document.getElementById('paymentTableBody'); if(!rows||!rows.length){body.innerHTML='<tr><td colspan="4" class="empty">ยังไม่พบข้อมูลประเภทการชำระเงิน</td></tr>';return;} body.innerHTML=rows.map(r=>`<tr><td>${escapeHtml(r.pay_type_name||'-')}</td><td>${intfmt(r.payment_rows||0)}</td><td>${intfmt(r.bill_count||0)}</td><td>${money(r.total_amount)} ฿</td></tr>`).join('');}
 function renderDiscountTable(rows){const body=document.getElementById('discountTableBody'); if(!rows||!rows.length){body.innerHTML='<tr><td colspan="4" class="empty">ยังไม่พบข้อมูลส่วนลด</td></tr>';return;} body.innerHTML=rows.map(r=>`<tr><td>${escapeHtml(r.discount_name||'-')}</td><td>${intfmt(r.bill_count||0)}</td><td>${money(r.total_discount)} ฿</td><td>${pctfmt(r.pct_of_sales)}%</td></tr>`).join('');}
+function renderVoidBills(rows){const body=document.getElementById('voidBillsBody'); if(!rows||!rows.length){body.innerHTML='<tr><td colspan="7" class="empty">ไม่พบบิลที่ถูกยกเลิก</td></tr>';return;} body.innerHTML=rows.map(r=>{const when=r.void_time||r.close_time||'-'; const bill=r.receipt_id?('#'+r.receipt_id):('T'+r.transaction_id+'-'+r.computer_id); return `<tr><td>${escapeHtml(when)}</td><td>${escapeHtml(bill)}</td><td>${escapeHtml(r.table_name||'-')}</td><td>${escapeHtml(r.sale_mode_name||'-')}</td><td><span class="badge badge-void">${escapeHtml(bill_status_thai_js(r.status_description||'-'))}</span></td><td>${escapeHtml(r.void_reason||'-')}</td><td>${money(r.receipt_pay_price)} ฿</td></tr>`;}).join('');}
+function bill_status_thai_js(s){const m={'CloseBill':'ชำระแล้ว','OpenBill':'เปิดบิล','HoldBill':'พักบิล','Reserve':'จองโต๊ะ','Cancel Bill':'ยกเลิกบิล','Void All':'ยกเลิกทั้งบิล'}; return m[s]||(s===''?'-':s);}
 function applyTheme(theme){const safeTheme=(theme==='light')?'light':'dark'; bodyEl.setAttribute('data-theme',safeTheme); localStorage.setItem(themeKey,safeTheme); themeButtons.forEach(btn=>btn.classList.toggle('active',btn.dataset.theme===safeTheme));}
 function showError(msg){if(msg){errorBox.style.display='block'; errorBox.textContent=msg;} else {errorBox.style.display='none'; errorBox.textContent='';}}
 function isToday(dateStr){return dateStr === new Date().toISOString().slice(0,10);}
@@ -279,6 +303,9 @@ async function loadDashboard(forceRefresh = false){
     renderPaymentTable(data.payment_types);
     renderDiscountTable(data.discount_summary);
     renderRecentBills(data.recent_bills);
+    document.getElementById('voidBillCount').textContent=intfmt(data.void_summary?.bill_count||0);
+    document.getElementById('voidTotal').textContent=money(data.void_summary?.total_voided||0)+' ฿';
+    renderVoidBills(data.void_bills);
   } catch(err){
     const message = err && err.name === 'AbortError' ? 'คำขอถูกยกเลิกหรือหมดเวลา กรุณาลองใหม่อีกครั้ง' : (err.message||'โหลดข้อมูลไม่สำเร็จ');
     showError(message);
@@ -294,6 +321,9 @@ async function loadDashboard(forceRefresh = false){
     document.getElementById('discountTableBody').innerHTML='<tr><td colspan="4" class="empty">โหลดข้อมูลไม่สำเร็จ</td></tr>';
     document.getElementById('hourlyBars').innerHTML='<div class="empty">โหลดข้อมูลไม่สำเร็จ</div>';
     document.getElementById('saleModeBars').innerHTML='<div class="empty">โหลดข้อมูลไม่สำเร็จ</div>';
+    document.getElementById('voidBillCount').textContent='-';
+    document.getElementById('voidTotal').textContent='-';
+    document.getElementById('voidBillsBody').innerHTML='<tr><td colspan="7" class="empty">โหลดข้อมูลไม่สำเร็จ</td></tr>';
   } finally {
     isLoading = false;
     setControlsLoading(false);
