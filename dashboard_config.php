@@ -63,13 +63,11 @@ function db_connect(): mysqli {
     }
 
     if (!$conn_final) {
-        http_response_code(500);
-        die('Database connection failed.');
+        throw new \RuntimeException('Database connection failed.');
     }
 
     if (!mysqli_set_charset($conn, $DB_CHARSET)) {
-        http_response_code(500);
-        die('Unable to set charset.');
+        throw new \RuntimeException('Unable to set charset.');
     }
 
     return $conn;
