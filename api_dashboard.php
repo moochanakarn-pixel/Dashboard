@@ -140,7 +140,6 @@ try {
                 WHERE ots.TransactionStatusID = ot.TransactionStatusID
                   AND ots.Description = 'CloseBill'
             )
-            OR ot.PaidTime IS NOT NULL
         )
     ";
 
