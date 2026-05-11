@@ -86,6 +86,15 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     <meta property="og:title" content="Sales Dashboard">
     <meta property="og:description" content="แดชบอร์ดยอดขาย สินค้าขายดี สรุปการชำระเงิน และสรุปการใช้ส่วนลดแบบเรียลไทม์">
     <meta property="og:type" content="website">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.jpg">
+    <link rel="apple-touch-icon" href="icon.jpg">
+    <meta name="theme-color" content="#0b1220">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dashboard">
+    <meta name="mobile-web-app-capable" content="yes">
     <style>
         :root{
             --bg:#0b1220; --bg2:#0d1526; --card:#121a2b; --card2:#182235; --line:rgba(255,255,255,.08);
