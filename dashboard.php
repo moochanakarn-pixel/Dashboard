@@ -418,6 +418,8 @@ function releaseSlot(){ if(!slotToken) return; navigator.sendBeacon('slot.php', 
 setInterval(sendHeartbeat, 30000);
 window.addEventListener('beforeunload', releaseSlot);
 
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
+
 // PWA Install Prompt
 (function(){
   const installKey = 'pwa_install_dismissed';
