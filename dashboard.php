@@ -160,6 +160,24 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             .grid-cards{grid-template-columns:1fr}
             .hero h1{font-size:20px}
         }
+        .install-banner{position:fixed;bottom:0;left:0;right:0;z-index:999;padding:14px 16px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -8px 32px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;transform:translateY(100%);transition:transform .3s ease}
+        .install-banner.show{transform:translateY(0)}
+        .install-banner-icon{width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0}
+        .install-banner-text{flex:1;min-width:0}
+        .install-banner-title{font-size:14px;font-weight:700;margin-bottom:2px}
+        .install-banner-sub{font-size:12px;color:var(--muted)}
+        .install-banner-actions{display:flex;gap:8px;flex-shrink:0}
+        .install-btn{background:linear-gradient(135deg,var(--accent),#8d8cff);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+        .install-dismiss{background:var(--pill);border:1px solid var(--line);color:var(--muted);border-radius:12px;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap}
+        .ios-guide{position:fixed;bottom:0;left:0;right:0;z-index:999;padding:20px 20px 32px;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.3);transform:translateY(100%);transition:transform .3s ease}
+        .ios-guide.show{transform:translateY(0)}
+        .ios-guide-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+        .ios-guide-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:0}
+        .ios-steps{display:flex;flex-direction:column;gap:14px}
+        .ios-step{display:flex;align-items:flex-start;gap:12px;font-size:14px;color:var(--muted);line-height:1.5}
+        .ios-step-num{width:26px;height:26px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8d8cff);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+        .ios-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s ease}
+        .ios-overlay.show{opacity:1;pointer-events:auto}
     </style>
 </head>
 <body data-theme="dark">
@@ -263,6 +281,33 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     </div>
 
     <div class="footer-note" id="footerNote">Auto refresh กำลังเตรียมทำงาน...</div>
+</div>
+
+<!-- Install Banner (Android) -->
+<div class="install-banner" id="installBanner">
+    <img class="install-banner-icon" src="icon-192.png" alt="icon">
+    <div class="install-banner-text">
+        <div class="install-banner-title">Sales Dashboard</div>
+        <div class="install-banner-sub">เพิ่มลงหน้าจอหลักเพื่อเข้าใช้งานได้เร็วขึ้น</div>
+    </div>
+    <div class="install-banner-actions">
+        <button class="install-dismiss" id="installDismiss">ปิด</button>
+        <button class="install-btn" id="installBtn">ติดตั้ง</button>
+    </div>
+</div>
+
+<!-- iOS Guide Sheet -->
+<div class="ios-overlay" id="iosOverlay"></div>
+<div class="ios-guide" id="iosGuide">
+    <div class="ios-guide-title">
+        เพิ่มลงหน้าจอหลัก
+        <button class="ios-guide-close" id="iosClose">&#x2715;</button>
+    </div>
+    <div class="ios-steps">
+        <div class="ios-step"><div class="ios-step-num">1</div><div>กดปุ่ม <strong>Share</strong> (รูปกล่องมีลูกศรขึ้น) ที่แถบด้านล่างของ Safari</div></div>
+        <div class="ios-step"><div class="ios-step-num">2</div><div>เลื่อนลงแล้วเลือก <strong>"เพิ่มไปที่หน้าจอโฮม"</strong></div></div>
+        <div class="ios-step"><div class="ios-step-num">3</div><div>กด <strong>"เพิ่ม"</strong> มุมขวาบน — ไอคอนจะปรากฏบนหน้าจอทันที</div></div>
+    </div>
 </div>
 <script>
 const dateInput = document.getElementById('dateInput');
@@ -372,6 +417,53 @@ function sendHeartbeat(){ if(!slotToken) return; fetch('slot.php',{method:'POST'
 function releaseSlot(){ if(!slotToken) return; navigator.sendBeacon('slot.php', new URLSearchParams({action:'release',token:slotToken})); }
 setInterval(sendHeartbeat, 30000);
 window.addEventListener('beforeunload', releaseSlot);
+
+// PWA Install Prompt
+(function(){
+  const installKey = 'pwa_install_dismissed';
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isMobile = window.innerWidth <= 900 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isStandalone || !isMobile || localStorage.getItem(installKey)) return;
+
+  const banner = document.getElementById('installBanner');
+  const iosGuide = document.getElementById('iosGuide');
+  const iosOverlay = document.getElementById('iosOverlay');
+
+  function dismissAll(){
+    banner.classList.remove('show');
+    iosGuide.classList.remove('show');
+    iosOverlay.classList.remove('show');
+    localStorage.setItem(installKey, '1');
+  }
+
+  document.getElementById('installDismiss').addEventListener('click', dismissAll);
+  document.getElementById('iosClose').addEventListener('click', dismissAll);
+  iosOverlay.addEventListener('click', dismissAll);
+
+  if(isIOS){
+    setTimeout(()=>{ banner.classList.add('show'); }, 2000);
+    document.getElementById('installBtn').textContent = 'วิธีติดตั้ง';
+    document.getElementById('installBtn').addEventListener('click', ()=>{
+      banner.classList.remove('show');
+      iosGuide.classList.add('show');
+      iosOverlay.classList.add('show');
+    });
+  } else {
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      e.preventDefault();
+      deferredPrompt = e;
+      setTimeout(()=>{ banner.classList.add('show'); }, 2000);
+    });
+    document.getElementById('installBtn').addEventListener('click', ()=>{
+      if(!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(()=>{ deferredPrompt = null; dismissAll(); });
+    });
+    window.addEventListener('appinstalled', dismissAll);
+  }
+})();
 </script>
 </body>
 </html>
