@@ -462,10 +462,13 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').ca
   const iosGuide = document.getElementById('iosGuide');
   const iosOverlay = document.getElementById('iosOverlay');
 
+  const mainContainer = document.querySelector('.container');
+  function showBanner(){ banner.classList.add('show'); mainContainer.style.paddingBottom='90px'; }
   function dismissAll(){
     banner.classList.remove('show');
     iosGuide.classList.remove('show');
     iosOverlay.classList.remove('show');
+    mainContainer.style.paddingBottom='';
     localStorage.setItem(installKey, '1');
   }
 
