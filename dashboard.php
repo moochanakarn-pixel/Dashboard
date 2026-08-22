@@ -346,12 +346,13 @@ function renderVoidBills(rows){const body=document.getElementById('voidBillsBody
 function bill_status_thai_js(s){const m={'CloseBill':'ชำระแล้ว','OpenBill':'เปิดบิล','HoldBill':'พักบิล','Reserve':'จองโต๊ะ','Cancel Bill':'ยกเลิกบิล','Void All':'ยกเลิกทั้งบิล'}; return m[s]||(s===''?'-':s);}
 function applyTheme(theme){const safeTheme=(theme==='light')?'light':'dark'; bodyEl.setAttribute('data-theme',safeTheme); localStorage.setItem(themeKey,safeTheme); themeButtons.forEach(btn=>btn.classList.toggle('active',btn.dataset.theme===safeTheme));}
 function showError(msg){if(msg){errorBox.style.display='block'; errorBox.textContent=msg;} else {errorBox.style.display='none'; errorBox.textContent='';}}
-function isToday(dateStr){return dateStr === new Date().toISOString().slice(0,10);}
-function shouldAutoRefresh(){const selectedDate = dateInput.value || new Date().toISOString().slice(0,10); return !document.hidden && isToday(selectedDate);}
-function setControlsLoading(loading){reloadBtn.disabled = loading; dateInput.disabled = loading; reloadBtn.style.opacity = loading ? '0.7' : '1'; reloadBtn.style.cursor = loading ? 'wait' : 'pointer';}
-function updateFooterNote(){const selectedDate = dateInput.value || new Date().toISOString().slice(0,10); if(document.hidden){footerNote.textContent = 'หยุด auto refresh ชั่วคราว เพราะแท็บนี้ไม่ได้เปิดอยู่'; return;} if(!isToday(selectedDate)){footerNote.textContent = 'ปิด auto refresh อัตโนมัติ เพราะกำลังดูข้อมูลย้อนหลัง'; return;} footerNote.textContent = `auto refresh ทุก ${Math.round(refreshMs/1000)} วินาที สำหรับข้อมูลวันนี้`;}
-function stopAutoRefresh(){ if(autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } updateFooterNote(); }
-function startAutoRefresh(){ stopAutoRefresh(); if(!shouldAutoRefresh()) return; autoRefreshTimer = setInterval(() => { loadDashboard(); }, refreshMs); updateFooterNote(); }
+function isToday(dateStr){return dateStr===todayLocal();}
+function shouldAutoRefresh(){const selectedDate=dateInput.value||todayLocal(); return !document.hidden&&isToday(selectedDate);}
+function todayLocal(){const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function setControlsLoading(loading){reloadBtn.disabled=loading; dateInput.disabled=loading; document.getElementById('prevDay').disabled=loading; document.getElementById('nextDay').disabled=loading||dateInput.value>=todayLocal(); reloadBtn.style.opacity=loading?'0.7':'1'; reloadBtn.style.cursor=loading?'wait':'pointer';}
+function updateFooterNote(){const selectedDate=dateInput.value||todayLocal(); if(document.hidden){footerNote.textContent='หยุด auto refresh ชั่วคราว เพราะแท็บนี้ไม่ได้เปิดอยู่';return;} if(!isToday(selectedDate)){footerNote.textContent='ปิด auto refresh อัตโนมัติ เพราะกำลังดูข้อมูลย้อนหลัง';return;} footerNote.textContent=`auto refresh ทุก ${Math.round(refreshMs/1000)} วินาที สำหรับข้อมูลวันนี้`;}
+function stopAutoRefresh(){if(autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;} updateFooterNote();}
+function startAutoRefresh(){stopAutoRefresh(); if(!shouldAutoRefresh()) return; autoRefreshTimer=setInterval(()=>{loadDashboard();},refreshMs); updateFooterNote();}
 async function fetchWithTimeout(url, options = {}, timeout = requestTimeoutMs){
   if(activeController){ activeController.abort(); }
   const controller = new AbortController();
@@ -419,15 +420,17 @@ async function loadDashboard(forceRefresh = false){
 reloadBtn.addEventListener('click',()=>loadDashboard(true));
 dateInput.addEventListener('change',()=>{ updateNavButtons(); loadDashboard(true); startAutoRefresh(); });
 function updateNavButtons(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayLocal();
   const cur=dateInput.value||today;
   document.getElementById('nextDay').disabled=(cur>=today);
 }
 function shiftDate(days){
-  const today=new Date().toISOString().slice(0,10);
-  const d=new Date(dateInput.value||today);
-  d.setDate(d.getDate()+days);
-  const next=d.toISOString().slice(0,10);
+  const today=todayLocal();
+  const cur=dateInput.value||today;
+  const [y,m,d]=cur.split('-').map(Number);
+  const date=new Date(y,m-1,d);
+  date.setDate(date.getDate()+days);
+  const next=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
   if(next>today) return;
   dateInput.value=next;
   updateNavButtons();
