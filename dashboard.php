@@ -178,6 +178,10 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         .ios-step-num{width:26px;height:26px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8d8cff);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
         .ios-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s ease}
         .ios-overlay.show{opacity:1;pointer-events:auto}
+        .date-nav{display:flex;align-items:center;gap:6px}
+        .nav-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--pill);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+        .nav-btn:hover{background:var(--card2)}
+        .nav-btn:disabled{opacity:.3;cursor:default}
     </style>
 </head>
 <body data-theme="dark">
@@ -193,7 +197,11 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
                 <button class="theme-btn theme-dark active" data-theme="dark" title="Dark"></button>
                 <button class="theme-btn theme-light" data-theme="light" title="Light"></button>
             </div>
-            <input class="control" type="date" id="dateInput" value="<?php echo h($date); ?>">
+            <div class="date-nav">
+                <button class="nav-btn" id="prevDay" title="วันก่อนหน้า">&#8249;</button>
+                <input class="control" type="date" id="dateInput" value="<?php echo h($date); ?>">
+                <button class="nav-btn" id="nextDay" title="วันถัดไป">&#8250;</button>
+            </div>
             <button class="action" id="reloadBtn">รีโหลดข้อมูล</button>
         </div>
     </div>
@@ -409,7 +417,26 @@ async function loadDashboard(forceRefresh = false){
   }
 }
 reloadBtn.addEventListener('click',()=>loadDashboard(true));
-dateInput.addEventListener('change',()=>{ loadDashboard(true); startAutoRefresh(); });
+dateInput.addEventListener('change',()=>{ updateNavButtons(); loadDashboard(true); startAutoRefresh(); });
+function updateNavButtons(){
+  const today=new Date().toISOString().slice(0,10);
+  const cur=dateInput.value||today;
+  document.getElementById('nextDay').disabled=(cur>=today);
+}
+function shiftDate(days){
+  const today=new Date().toISOString().slice(0,10);
+  const d=new Date(dateInput.value||today);
+  d.setDate(d.getDate()+days);
+  const next=d.toISOString().slice(0,10);
+  if(next>today) return;
+  dateInput.value=next;
+  updateNavButtons();
+  loadDashboard(true);
+  startAutoRefresh();
+}
+document.getElementById('prevDay').addEventListener('click',()=>shiftDate(-1));
+document.getElementById('nextDay').addEventListener('click',()=>shiftDate(1));
+updateNavButtons();
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ stopAutoRefresh(); } else { updateFooterNote(); loadDashboard(); startAutoRefresh(); } });
 loadDashboard();
 startAutoRefresh();
