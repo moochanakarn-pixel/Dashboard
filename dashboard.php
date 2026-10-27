@@ -95,6 +95,9 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dashboard">
     <meta name="mobile-web-app-capable" content="yes">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root{
             --bg:#0b1220; --bg2:#0d1526; --card:#121a2b; --card2:#182235; --line:rgba(255,255,255,.08);
@@ -110,19 +113,27 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             --hero1:rgba(61,123,253,.10); --hero2:rgba(47,197,157,.08); --row:rgba(61,123,253,.04);
             --track:rgba(61,123,253,.08); --badgebg:rgba(47,197,157,.10); --badgetext:#0e8a67; --badgeline:rgba(47,197,157,.20);
         }
-        *{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Tahoma,Arial,sans-serif;background:radial-gradient(circle at top right,var(--hero1),transparent 30%),radial-gradient(circle at top left,rgba(255,122,182,.12),transparent 26%),linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);color:var(--text);transition:background .2s ease,color .2s ease}
+        *{box-sizing:border-box} body{margin:0;font-family:'Inter',Segoe UI,Tahoma,Arial,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(circle at top right,var(--hero1),transparent 30%),radial-gradient(circle at top left,rgba(255,122,182,.12),transparent 26%),linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);color:var(--text);transition:background .2s ease,color .2s ease}
         .container{max-width:1500px;margin:0 auto;padding:24px}.card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
         .hero{padding:24px;display:grid;grid-template-columns:1.4fr auto;gap:16px;align-items:center;background:linear-gradient(135deg,var(--hero1),var(--hero2))}
-        .hero h1{margin:0 0 8px;font-size:34px}.hero p{margin:0;color:var(--muted);font-size:16px}.hero-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+        .hero h1{margin:0 0 8px;font-size:34px;font-weight:800;letter-spacing:-.03em}.hero p{margin:0;color:var(--muted);font-size:16px}.hero-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
         .theme-wrap{display:flex;gap:8px;align-items:center}.theme-btn{width:38px;height:38px;border-radius:999px;border:2px solid transparent;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.12)}.theme-btn.active{border-color:rgba(255,255,255,.85);transform:scale(1.05)} body[data-theme="light"] .theme-btn.active{border-color:rgba(24,35,61,.75)} .theme-dark{background:linear-gradient(135deg,#6ea8fe,#82e7c7)} .theme-light{background:linear-gradient(135deg,#ffffff,#7aa5ff)}
         .control{background:var(--pill);border:1px solid var(--line);color:var(--text);border-radius:16px;padding:12px 14px;min-height:48px} input[type=date]{color-scheme:dark} body[data-theme="light"] input[type=date]{color-scheme:light}
         button.action{background:linear-gradient(135deg,var(--accent),#8d8cff);color:#fff;border:none;border-radius:16px;padding:12px 18px;font-weight:700;cursor:pointer}
         .meta{margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;color:var(--muted)} .pill{padding:8px 12px;border-radius:999px;background:var(--pill);border:1px solid var(--line)}
-        .grid-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:20px}.stat{padding:22px}.label{color:var(--muted);font-size:14px;margin-bottom:10px}.value{font-size:34px;font-weight:800}.sub{margin-top:10px;color:var(--muted);font-size:13px}
-        .grid-main{display:grid;grid-template-columns:1.08fr .92fr;gap:16px;margin-top:16px}.grid-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.section{padding:20px}.section h2{margin:0 0 16px;font-size:20px}
-        .bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:170px 1fr auto;gap:12px;align-items:center}.track{height:12px;background:var(--track);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.03)}.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+        .grid-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:20px}
+        .stat{padding:22px;border-top:3px solid var(--stat-c,var(--accent));position:relative;overflow:hidden}
+        .stat::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(var(--stat-rgb,.1),0.06),transparent 60%);pointer-events:none}
+        .stat-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;background:color-mix(in srgb,var(--stat-c,var(--accent)) 15%,transparent)}
+        .label{color:var(--muted);font-size:13px;font-weight:500;margin-bottom:8px;letter-spacing:.01em}.value{font-size:34px;font-weight:800;letter-spacing:-.02em}.sub{margin-top:8px;color:var(--muted);font-size:13px}
+        .grid-main{display:grid;grid-template-columns:1.08fr .92fr;gap:16px;margin-top:16px}.grid-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.section{padding:20px}.section h2{margin:0 0 16px;font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;letter-spacing:-.01em}.section h2::before{content:'';display:block;width:4px;height:1.1em;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent2));flex-shrink:0}
+        .bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:170px 1fr auto;gap:12px;align-items:center}.track{height:10px;background:var(--track);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.03)}.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:fillbar .7s cubic-bezier(.4,0,.2,1) both}
+        @keyframes fillbar{from{width:0}}
         .bar-label,.bar-value{font-size:14px}.bar-value{color:var(--muted);white-space:nowrap}.table-wrap{overflow:auto} table{width:100%;border-collapse:collapse} th,td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap} th{color:var(--muted);font-size:13px;font-weight:600} td{font-size:14px} tr:hover td{background:var(--row)}
-        .badge{display:inline-flex;padding:7px 12px;border-radius:999px;background:var(--badgebg);color:var(--badgetext);border:1px solid var(--badgeline);font-size:12px;font-weight:700}
+        .badge{display:inline-flex;padding:6px 12px;border-radius:999px;background:var(--badgebg);color:var(--badgetext);border:1px solid var(--badgeline);font-size:12px;font-weight:600;letter-spacing:.01em}
+        .live-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(47,223,158,.12);color:#2fdf9e;font-size:12px;font-weight:600;border:1px solid rgba(47,223,158,.2)}
+        .live-dot{width:6px;height:6px;border-radius:50%;background:#2fdf9e;animation:pulsedot 1.6s ease-in-out infinite;flex-shrink:0}
+        @keyframes pulsedot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
         .empty{padding:18px;border-radius:18px;background:var(--pill);color:var(--muted);text-align:center}.error-box{display:none;margin-top:16px;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,99,99,.12);color:var(--danger);white-space:pre-wrap}.rank{font-weight:800;color:var(--accent)}.footer-note{margin-top:14px;color:var(--muted);font-size:12px;text-align:right}.text-right{text-align:right}
         .void-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.void-stat-item{padding:18px 20px;background:rgba(255,138,138,.05);border:1px solid rgba(255,138,138,.12);border-radius:16px}.void-value{font-size:30px;font-weight:800;color:var(--danger);margin-top:8px}.badge-void{background:rgba(255,138,138,.12);color:var(--danger);border-color:rgba(255,138,138,.25)}
         @media(max-width:1280px){.grid-cards{grid-template-columns:repeat(3,1fr)}}
@@ -136,7 +147,8 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             .pill{padding:6px 10px;font-size:12px}
             .grid-cards{grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
             .grid-main,.grid-bottom{gap:10px;margin-top:10px}
-            .stat{padding:14px}
+            .stat{padding:14px 12px}
+            .stat-icon{width:36px;height:36px;font-size:18px;border-radius:10px;margin-bottom:10px}
             .value{font-size:24px}
             .label{font-size:12px}
             .sub{font-size:11px;margin-top:6px}
@@ -190,6 +202,7 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         <div>
             <h1>Sales Dashboard</h1>
             <div class="meta">
+                <span class="live-badge" id="liveBadge"><span class="live-dot"></span>Live</span>
             </div>
         </div>
         <div class="hero-controls">
@@ -209,11 +222,11 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     <div class="error-box" id="errorBox"></div>
 
     <div class="grid-cards">
-        <div class="card stat"><div class="label">ยอดขายรวม</div><div class="value" id="salesTotal">-</div><div class="sub">จากบิลที่ชำระแล้ว</div></div>
-        <div class="card stat"><div class="label">จำนวนบิล</div><div class="value" id="billCount">-</div><div class="sub">บิลที่ปิดการขายแล้ว</div></div>
-        <div class="card stat"><div class="label">ค่าเฉลี่ยต่อบิล</div><div class="value" id="avgBill">-</div><div class="sub">ยอดเฉลี่ยต่อใบเสร็จ</div></div>
-        <div class="card stat"><div class="label">จำนวนลูกค้า</div><div class="value" id="guestCount">-</div><div class="sub">รวมจาก NoCustomer</div></div>
-        <div class="card stat"><div class="label">ส่วนลดรวม</div><div class="value" id="discountTotal">-</div><div class="sub" id="discountBillCount">จากบิลที่มีส่วนลด</div></div>
+        <div class="card stat" style="--stat-c:#2fdf9e"><div class="stat-icon">💰</div><div class="label">ยอดขายรวม</div><div class="value" id="salesTotal">-</div><div class="sub">จากบิลที่ชำระแล้ว</div></div>
+        <div class="card stat" style="--stat-c:#6ea8fe"><div class="stat-icon">🧾</div><div class="label">จำนวนบิล</div><div class="value" id="billCount">-</div><div class="sub">บิลที่ปิดการขายแล้ว</div></div>
+        <div class="card stat" style="--stat-c:#a78bfa"><div class="stat-icon">📊</div><div class="label">ค่าเฉลี่ยต่อบิล</div><div class="value" id="avgBill">-</div><div class="sub">ยอดเฉลี่ยต่อใบเสร็จ</div></div>
+        <div class="card stat" style="--stat-c:#fb923c"><div class="stat-icon">👥</div><div class="label">จำนวนลูกค้า</div><div class="value" id="guestCount">-</div><div class="sub">รวมจาก NoCustomer</div></div>
+        <div class="card stat" style="--stat-c:#f472b6"><div class="stat-icon">🏷️</div><div class="label">ส่วนลดรวม</div><div class="value" id="discountTotal">-</div><div class="sub" id="discountBillCount">จากบิลที่มีส่วนลด</div></div>
     </div>
 
     <div class="grid-main">
@@ -393,6 +406,8 @@ async function loadDashboard(forceRefresh = false){
     document.getElementById('voidBillCount').textContent=intfmt(data.void_summary?.bill_count||0);
     document.getElementById('voidTotal').textContent=money(data.void_summary?.total_voided||0)+' ฿';
     renderVoidBills(data.void_bills);
+    const lb=document.getElementById('liveBadge');
+    if(lb){ lb.innerHTML='<span class="live-dot"></span>อัปเดต '+(new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})); }
   } catch(err){
     const message = err && err.name === 'AbortError' ? 'คำขอถูกยกเลิกหรือหมดเวลา กรุณาลองใหม่อีกครั้ง' : (err.message||'โหลดข้อมูลไม่สำเร็จ');
     showError(message);
